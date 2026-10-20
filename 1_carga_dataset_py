@@ -1,0 +1,8 @@
+# Importar librerías
+import pandas as pd
+# Cargar el dataset 
+df = pd.read_csv("dataset.csv", sep=";")
+# Visualizar la información
+print(df.head())       # Muestra las primeras 5 filas
+df.info()              # Muestra las columnas, tipos de datos y no nulos
+print(df.shape)        # Muestra las dimensiones (filas, columnas)

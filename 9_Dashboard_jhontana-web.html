@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ing. Jhontana Automatizando reportes de Calidad</title>
+    <!-- Plotly.js CDN -->
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <!-- PapaParse CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f0f4f8;
+            color: #102a43;
+            padding-bottom: 50px;
+        }
+
+        .header-banner {
+            background-color: #00667e;
+            color: white;
+            padding: 35px 40px;
+            margin-bottom: 30px;
+            width: 100%;
+        }
+
+        .header-banner h1 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .header-banner p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            border: 1px solid #e1e8ed;
+        }
+
+        .card h2 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #102a43;
+            font-weight: 700;
+        }
+
+        .card p.desc {
+            font-size: 14px;
+            color: #627d98;
+            margin-bottom: 18px;
+            line-height: 1.5;
+        }
+
+        .file-upload-box {
+            display: inline-block;
+            background: #f8fafc;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px dashed #cbd5e1;
+            margin-bottom: 12px;
+        }
+
+        .file-upload-box input[type="file"] {
+            font-size: 14px;
+            color: #334e68;
+            cursor: pointer;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .kpi-card {
+            background: white;
+            padding: 22px 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            border: 1px solid #e1e8ed;
+        }
+
+        .kpi-title {
+            font-size: 13px;
+            color: #627d98;
+            margin-bottom: 14px;
+            font-weight: 500;
+        }
+
+        .kpi-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: #102a43;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            border: 1px solid #e1e8ed;
+            min-height: 480px;
+        }
+
+        .chart-card h3 {
+            font-size: 17px;
+            color: #102a43;
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+
+        .chart-card p.sub {
+            font-size: 13px;
+            color: #627d98;
+            margin-bottom: 16px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .error-msg {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-banner">
+        <div class="container">
+            <h1>Ing. Jhontana Automatizando reportes de Calidad</h1>
+            <p>Dashboard interactivo de análisis y predicción de resistencia del concreto</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="error-msg" id="errorBox"></div>
+
+        <div class="card">
+            <h2>Cargar datos</h2>
+            <p class="desc">Selecciona <b>dataset.csv</b> o <b>compresive_strength_concrete.csv</b>. El archivo se procesa localmente en tu navegador; las filas completamente duplicadas se excluyen.</p>
+            
+            <div class="file-upload-box">
+                <input type="file" id="csvFileInput" accept=".csv">
+            </div>
+            <p style="font-size: 13px; color: #627d98;" id="statusText">Carga el CSV para generar el dashboard.</p>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-title">Resistencia promedio</div>
+                <div class="kpi-value" id="kpi-mean">&mdash;</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Resistencia máxima</div>
+                <div class="kpi-value" id="kpi-max">&mdash;</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Resistencia mínima</div>
+                <div class="kpi-value" id="kpi-min">&mdash;</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Registros analizados</div>
+                <div class="kpi-value" id="kpi-count">&mdash;</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Edad promedio</div>
+                <div class="kpi-value" id="kpi-age">&mdash;</div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>Distribución de resistencia</h3>
+                <p class="sub" id="distSub">Media, moda, mediana y desviación estándar se mostrarán al cargar datos.</p>
+                <div id="histPlot"></div>
+            </div>
+            <div class="chart-card">
+                <h3>Correlación entre variables numéricas</h3>
+                <p class="sub">Matriz de correlación lineal entre componentes y resistencia.</p>
+                <div id="corrPlot"></div>
+            </div>
+            <div class="chart-card full-width">
+                <h3>Análisis 3D de Mezclas</h3>
+                <p class="sub">Interacción tridimensional entre Agua, Cemento y Resistencia.</p>
+                <div id="scatter3dPlot"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getMean(arr) {
+            if (!arr.length) return 0;
+            return arr.reduce((a, b) => a + b, 0) / arr.length;
+        }
+
+        function getMedian(arr) {
+            if (!arr.length) return 0;
+            const sorted = [...arr].sort((a, b) => a - b);
+            const mid = Math.floor(sorted.length / 2);
+            return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+        }
+
+        function getMode(arr) {
+            if (!arr.length) return 0;
+            const freq = {};
+            arr.forEach(val => {
+                const rounded = Number(val).toFixed(1);
+                freq[rounded] = (freq[rounded] || 0) + 1;
+            });
+            let maxFreq = 0, mode = arr[0];
+            for (const k in freq) {
+                if (freq[k] > maxFreq) {
+                    maxFreq = freq[k];
+                    mode = Number(k);
+                }
+            }
+            return mode;
+        }
+
+        function getStdDev(arr, mean) {
+            if (!arr.length) return 0;
+            const variance = arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / arr.length;
+            return Math.sqrt(variance);
+        }
+
+        function correlation(arr1, arr2) {
+            if (!arr1.length || !arr2.length || arr1.length !== arr2.length) return 0;
+            const m1 = getMean(arr1), m2 = getMean(arr2);
+            let n = 0, d1 = 0, d2 = 0;
+            for (let i = 0; i < arr1.length; i++) {
+                const diff1 = arr1[i] - m1, diff2 = arr2[i] - m2;
+                n += diff1 * diff2;
+                d1 += diff1 * diff1;
+                d2 += diff2 * diff2;
+            }
+            return d1 * d2 === 0 ? 0 : n / Math.sqrt(d1 * d2);
+        }
+
+        document.getElementById('csvFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const errorBox = document.getElementById('errorBox');
+            errorBox.style.display = 'none';
+
+            Papa.parse(file, {
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                delimiter: "",
+                complete: function(results) {
+                    if (!results.data || results.data.length === 0) {
+                        errorBox.innerText = 'El archivo está vacío o no es válido.';
+                        errorBox.style.display = 'block';
+                        return;
+                    }
+
+                    const rows = results.data;
+                    const sample = rows[0];
+                    const keys = Object.keys(sample);
+
+                    function matchKey(candidates) {
+                        return keys.find(k => candidates.some(c => k.toLowerCase().includes(c.toLowerCase())));
+                    }
+
+                    const cCement = matchKey(['cement', 'cemento']);
+                    const cStrength = matchKey(['strength', 'compressive', 'resistencia']);
+                    const cAge = matchKey(['age', 'edad', 'day']);
+                    const cSlag = matchKey(['slag', 'escoria']);
+                    const cFly = matchKey(['fly', 'ceniza']);
+                    const cWater = matchKey(['water', 'agua']);
+                    const cSP = matchKey(['sp', 'superplasticizer', 'superplastificante']);
+                    const cCoarse = matchKey(['coarse', 'grueso']);
+                    const cFine = matchKey(['fine', 'fino']);
+
+                    const totalRecibidos = rows.length;
+                    const jsonStrings = rows.map(r => JSON.stringify(r));
+                    const uniqueIndices = [...new Set(jsonStrings)].map(s => jsonStrings.indexOf(s));
+                    const cleanRows = uniqueIndices.map(i => rows[i]);
+                    const duplicadosExcluidos = totalRecibidos - cleanRows.length;
+
+                    const strengths = cleanRows.map(r => parseFloat(r[cStrength])).filter(v => !isNaN(v));
+                    const ages = cAge ? cleanRows.map(r => parseFloat(r[cAge])).filter(v => !isNaN(v)) : [28];
+                    const cements = cleanRows.map(r => parseFloat(r[cCement])).filter(v => !isNaN(v));
+
+                    const meanVal = getMean(strengths);
+                    const maxVal = Math.max(...strengths);
+                    const minVal = Math.min(...strengths);
+                    const medianVal = getMedian(strengths);
+                    const modeVal = getMode(strengths);
+                    const stdVal = getStdDev(strengths, meanVal);
+                    const ageMean = cAge ? getMean(ages) : 28;
+
+                    document.getElementById('kpi-mean').innerText = meanVal.toFixed(2) + ' MPa';
+                    document.getElementById('kpi-max').innerText = maxVal.toFixed(2) + ' MPa';
+                    document.getElementById('kpi-min').innerText = minVal.toFixed(2) + ' MPa';
+                    document.getElementById('kpi-count').innerText = cleanRows.length;
+                    document.getElementById('kpi-age').innerText = ageMean.toFixed(0) + ' días';
+                    
+                    document.getElementById('statusText').innerText = `Archivo: ${file.name} · ${totalRecibidos} registros recibidos · ${duplicadosExcluidos} filas duplicadas excluidas · ${cleanRows.length} registros analizados.`;
+                    document.getElementById('distSub').innerText = `Media: ${meanVal.toFixed(2)} MPa · Mediana: ${medianVal.toFixed(2)} MPa · Moda: ${modeVal.toFixed(2)} MPa · Desviación estándar: ${stdVal.toFixed(2)} MPa`;
+
+                    // Histograma
+                    Plotly.newPlot('histPlot', [{
+                        x: strengths,
+                        type: 'histogram',
+                        marker: { color: '#005f73' }
+                    }], {
+                        margin: { t: 10, b: 40, l: 40, r: 10 },
+                        paper_bgcolor: 'transparent',
+                        plot_bgcolor: 'transparent',
+                        xaxis: { title: 'Resistencia (MPa)' },
+                        yaxis: { title: 'Frecuencia' }
+                    }, {responsive: true});
+
+                    // Matriz de Correlaciones con etiquetas legibles
+                    const varMap = [
+                        { name: 'Cemento', key: cCement },
+                        { name: 'Escoria', key: cSlag },
+                        { name: 'Ceniza', key: cFly },
+                        { name: 'Agua', key: cWater },
+                        { name: 'SP', key: cSP },
+                        { name: 'Agr. Grueso', key: cCoarse },
+                        { name: 'Agr. Fino', key: cFine },
+                        { name: 'Resistencia', key: cStrength }
+                    ].filter(v => v.key !== undefined);
+
+                    const varNames = varMap.map(v => v.name);
+                    const zCorr = varMap.map(v1 => varMap.map(v2 => {
+                        const a1 = cleanRows.map(r => parseFloat(r[v1.key])).filter(x => !isNaN(x));
+                        const a2 = cleanRows.map(r => parseFloat(r[v2.key])).filter(x => !isNaN(x));
+                        return correlation(a1, a2);
+                    }));
+
+                    Plotly.newPlot('corrPlot', [{
+                        z: zCorr,
+                        x: varNames,
+                        y: varNames,
+                        type: 'heatmap',
+                        colorscale: 'Blues',
+                        text: zCorr.map(row => row.map(val => val.toFixed(2))),
+                        texttemplate: "%{text}",
+                        showscale: true
+                    }], {
+                        margin: { t: 20, b: 60, l: 90, r: 10 },
+                        paper_bgcolor: 'transparent',
+                        plot_bgcolor: 'transparent'
+                    }, {responsive: true});
+
+                    // Gráfico 3D
+                    Plotly.newPlot('scatter3dPlot', [{
+                        x: cleanRows.map(r => parseFloat(r[cWater])),
+                        y: cements,
+                        z: strengths,
+                        mode: 'markers',
+                        marker: { size: 4, color: strengths, colorscale: 'Viridis' },
+                        type: 'scatter3d'
+                    }], {
+                        scene: {
+                            xaxis: { title: 'Agua' },
+                            yaxis: { title: 'Cemento' },
+                            zaxis: { title: 'Resistencia (MPa)' }
+                        },
+                        margin: { l: 0, r: 0, b: 0, t: 0 },
+                        paper_bgcolor: 'transparent'
+                    }, {responsive: true});
+                }
+            });
+        });
+    </script>
+</body>
+</html>
